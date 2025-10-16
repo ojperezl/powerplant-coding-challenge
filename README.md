@@ -1,99 +1,257 @@
-# powerplant-coding-challenge
+# ENGIE Challenge API
 
+API desarrollada en FastAPI para optimizar la producción eléctrica calculando el plan óptimo de despacho de centrales eléctricas basado en costes marginales y restricciones técnicas.
 
-## Welcome !
+## 🚀 Características
 
-Below you can find the description of a coding challenge that we ask people to perform when applying for a job in our team.
+- **Optimización por orden de mérito**: Despacha centrales de menor a mayor coste marginal
+- **Gestión de renovables**: Integra automáticamente la energía eólica según disponibilidad
+- **Restricciones técnicas**: Respeta límites mínimos y máximos de cada central
+- **Validación robusta**: Modelos Pydantic con validación automática de datos
+- **API REST**: Endpoint único y bien documentado
+- **Dockerizado**: Fácil despliegue con contenedores
 
-The goal of this coding challenge is to provide the applicant some insight into the business we're in and as such provide the applicant an indication about the challenges she/he will be confronted with. Next, during the first interview we will use the applicant's implementation as a seed to discuss all kinds of interesting software engineering topics.  
+## 📋 Requisitos
 
-Time is scarce, we know. Therefore we ask you not to spend more than 4 hours on this challenge. We know it is not possible to deliver a finished implementation of the challenge in only four hours. Even though your submission will not be complete, it will provide us plenty of information and topics to discuss later on during the talks.
+- Python 3.10+ (recomendado 3.11)
+- Docker (opcional)
 
-This coding-challenge is part of a formal process and is used in collaboration with the recruiting companies we work with.  Submitting a pull-request will not automatically trigger the recruitement process.
-## Who are we 
+## 🛠️ Instalación y Uso
 
-We are the IS team of the 'Short-term Power as-a-Service' (a.k.a. SPaaS) team within [GEM](https://gems.engie.com/).
+### Instalación local
 
-[GEM](https://gems.engie.com/), which stands for 'Global Energy Management', is the energy management arm of [ENGIE](https://www.engie.com/), one of the largest global energy players, 
-with access to local markets all over the world.  
+```bash
+# Clonar o navegar al directorio del proyecto
+cd engie_challenge
 
-SPaaS is a team consisting of around 100 people with experience in energy markets, IT and modeling. In smaller teams consisting of a mix of people with different experiences, we are active on the [day-ahead](https://en.wikipedia.org/wiki/European_Power_Exchange#Day-ahead_markets) market, [intraday markets](https://en.wikipedia.org/wiki/European_Power_Exchange#Intraday_markets) and [collaborate with the TSO to balance the grid continuously](https://en.wikipedia.org/wiki/Transmission_system_operator#Electricity_market_operations).
+# Crear entorno virtual
+python -m venv .venv
+source .venv/bin/activate  # En Windows: .venv\Scripts\activate
 
-## The challenge
+# Instalar dependencias
+pip install -r requirements.txt
 
-### In short
-Calculate how much power each of a multitude of different [powerplants](https://en.wikipedia.org/wiki/Power_station) need to produce (a.k.a. the production-plan) when the [load](https://en.wikipedia.org/wiki/Load_profile) is given and taking into account the cost of the underlying energy sources (gas,  kerosine) and the Pmin and Pmax of each powerplant.
+# Ejecutar servidor
+uvicorn app.main:app --reload
+```
 
-### More in detail
+La API estará disponible en `http://127.0.0.1:8000`
 
-The load is the continuous demand of power. The total load at each moment in time is forecasted. For instance for Belgium you can see the load forecasted by the grid operator [here](https://www.elia.be/en/grid-data/load-and-load-forecasts).
+### Con Docker
 
-At any moment in time, all available powerplants need to generate the power to exactly match the load.  The cost of generating power can be different for every powerplant and is dependent on external factors: The cost of producing power using a [turbojet](https://en.wikipedia.org/wiki/Gas_turbine#Industrial_gas_turbines_for_power_generation), that runs on kerosine, is higher compared to the cost of generating power using a gas-fired powerplant because of gas being cheaper compared to kerosine and because of the [thermal efficiency](https://en.wikipedia.org/wiki/Thermal_efficiency) of a gas-fired powerplant being around 50% (2 units of gas will generate 1 unit of electricity) while that of a turbojet is only around 30%.  The cost of generating power using windmills however is zero. Thus deciding which powerplants to activate is dependent on the [merit-order](https://en.wikipedia.org/wiki/Merit_order).
+#### Construcción de la imagen
 
-When deciding which powerplants in the merit-order to activate (a.k.a. [unit-commitment problem](https://en.wikipedia.org/wiki/Unit_commitment_problem_in_electrical_power_production)) the maximum amount of power each powerplant can produce (Pmax) obviously needs to be taken into account.  Additionally gas-fired powerplants generate a certain minimum amount of power when switched on, called the Pmin. 
+```bash
+# Construir imagen desde el directorio engie_challenge
+docker build -t engie-challenge .
 
+# Verificar que la imagen se construyó correctamente
+docker images engie-challenge
+```
 
-### Performing the challenge
+#### Ejecución del contenedor
 
-Build a REST API exposing an endpoint `/productionplan` that accepts a POST of which the body contains a payload as you can find in the `example_payloads` directory and that returns a json with the same structure as in `example_response.json` and that manages and logs run-time errors.
+```bash
+# Ejecutar contenedor básico
+docker run -p 8000:8000 engie-challenge
 
-For calculating the unit-commitment, we prefer you not to rely on an existing (linear-programming) solver but instead write an algorithm yourself.
+# Ejecutar en modo detached (en segundo plano)
+docker run -d -p 8000:8000 --name engie-api engie-challenge
 
-Implementations can be submitted in either C# (on .Net 5 or higher) or Python (3.8 or higher) as these are (currently) the main languages we use in SPaaS. Along with the implementation should be a README that describes how to compile (if applicable) and launch the application.
+# Ejecutar con variables de entorno personalizadas
+docker run -p 8000:8000 -e PORT=8000 engie-challenge
 
-- C# implementations should contain a project file to compile the application. 
-- Python implementations should contain a `requirements.txt` or a `pyproject.toml` (for use with poetry) to install all needed dependencies.
+# Ejecutar con volúmenes para desarrollo
+docker run -p 8000:8000 -v $(pwd)/app:/app/app engie-challenge
+```
 
-#### Payload
+#### Comandos útiles de Docker
 
-The payload contains 3 types of data:
- - load: The load is the amount of energy (MWh) that need to be generated during one hour.
- - fuels: based on the cost of the fuels of each powerplant, the merit-order can be determined which is the starting point for deciding which powerplants should be switched on and how much power they will deliver.  Wind-turbine are either switched-on, and in that case generate a certain amount of energy depending on the % of wind, or can be switched off. 
-   - gas(euro/MWh): the price of gas per MWh. Thus if gas is at 6 euro/MWh and if the efficiency of the powerplant is 50% (i.e. 2 units of gas will generate one unit of electricity), the cost of generating 1 MWh is 12 euro.
-   - kerosine(euro/Mwh): the price of kerosine per MWh.
-   - co2(euro/ton): the price of emission allowances (optionally to be taken into account).
-   - wind(%): percentage of wind. Example: if there is on average 25% wind during an hour, a wind-turbine with a Pmax of 4 MW will generate 1MWh of energy.
- - powerplants: describes the powerplants at disposal to generate the demanded load. For each powerplant is specified:
-   - name:
-   - type: gasfired, turbojet or windturbine.
-   - efficiency: the efficiency at which they convert a MWh of fuel into a MWh of electrical energy. Wind-turbines do not consume 'fuel' and thus are considered to generate power at zero price.
-   - pmax: the maximum amount of power the powerplant can generate.
-   - pmin: the minimum amount of power the powerplant generates when switched on. 
+```bash
+# Ver logs del contenedor
+docker logs engie-api
 
-#### response
+# Detener el contenedor
+docker stop engie-api
 
-The response should be a json as in `example_payloads/response3.json`, which is the expected answer for `example_payloads/payload3.json`, specifying for each powerplant how much power each powerplant should deliver. The power produced by each powerplant has to be a multiple of 0.1 Mw and the sum of the power produced by all the powerplants together should equal the load.
+# Eliminar el contenedor
+docker rm engie-api
 
-### Want more challenge?
+# Eliminar la imagen
+docker rmi engie-challenge
 
-Having fun with this challenge and want to make it more realistic. Optionally, do one of the extra's below:
+# Ejecutar comandos dentro del contenedor
+docker exec -it engie-api /bin/bash
+```
 
-#### Docker
+#### Docker Compose (opcional)
 
-Provide a Dockerfile along with the implementation to allow deploying your solution quickly.
+Crea un archivo `docker-compose.yml` en el directorio raíz:
 
-#### CO2
+```yaml
+version: "3.8"
+services:
+  engie-api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+    restart: unless-stopped
+```
 
-Taken into account that a gas-fired powerplant also emits CO2, the cost of running the powerplant should also take into account the cost of the [emission allowances](https://en.wikipedia.org/wiki/Carbon_emission_trading).  For this challenge, you may take into account that each MWh generated creates 0.3 ton of CO2. 
+Ejecutar con Docker Compose:
 
-## Acceptance criteria
+```bash
+# Construir y ejecutar
+docker-compose up --build
 
-For a submission to be reviewed as part of an application for a position in the team, the project needs to:
-  - contain a README.md explaining how to build and launch the API
-  - expose the API on port `8888`
+# Ejecutar en segundo plano
+docker-compose up -d
 
-Failing to comply with any of these criteria will automatically disqualify the submission.
+# Detener servicios
+docker-compose down
+```
 
-## More info
+## 📡 API Endpoints
 
-For more info on energy management, check out:
+### POST `/productionplan`
 
- - [Global Energy Management Solutions](https://www.youtube.com/watch?v=SAop0RSGdHM)
- - [COO hydroelectric power station](https://www.youtube.com/watch?v=edamsBppnlg)
- - [Management of supply](https://www.youtube.com/watch?v=eh6IIQeeX3c) - video made during winter 2018-2019
+Calcula el plan óptimo de producción eléctrica.
 
-## FAQ
+**Request Body:**
 
-##### Can an existing solver be used to calculate the unit-commitment
-Implementations should not rely on an external solver and thus contain an algorithm written from scratch (clarified in the text as of version v1.1.0)
+```json
+{
+  "load": 480,
+  "fuels": {
+    "gas(euro/MWh)": 13.4,
+    "kerosine(euro/MWh)": 50.8,
+    "co2(euro/ton)": 20,
+    "wind(%)": 60
+  },
+  "powerplants": [
+    {
+      "name": "gasfiredbig1",
+      "type": "gasfired",
+      "efficiency": 0.53,
+      "pmin": 100,
+      "pmax": 460
+    },
+    {
+      "name": "windpark1",
+      "type": "windturbine",
+      "efficiency": 1,
+      "pmin": 0,
+      "pmax": 150
+    }
+  ]
+}
+```
 
+**Response:**
+
+```json
+[
+  { "name": "gasfiredbig1", "p": 230.0 },
+  { "name": "windpark1", "p": 90.0 }
+]
+```
+
+### GET `/`
+
+Endpoint de salud que devuelve el estado de la API.
+
+## 🔧 Algoritmo de Optimización
+
+### 1. Cálculo de Costes Marginales
+
+- **Gas**: `precio_gas / eficiencia`
+- **Turbojet**: `precio_queroseno / eficiencia`
+- **Eólica**: `0` (sin coste de combustible)
+
+### 2. Orden de Mérito
+
+Las centrales se ordenan de menor a mayor coste marginal.
+
+### 3. Despacho
+
+1. **Renovables**: Se despachan primero las eólicas según disponibilidad (`wind(%)`)
+2. **Térmicas**: Se cubre la demanda restante siguiendo el orden de mérito
+3. **Restricciones**: Se respetan `pmin` y `pmax` de cada central
+4. **Ajuste final**: Se optimiza para alcanzar exactamente la carga solicitada
+
+## 📁 Estructura del Proyecto
+
+```
+engie_challenge/
+├── app/
+│   ├── __init__.py
+│   ├── main.py          # API FastAPI
+│   ├── models.py        # Modelos Pydantic
+│   └── logic.py         # Algoritmo de optimización
+├── requirements.txt     # Dependencias Python
+├── Dockerfile          # Imagen Docker
+└── README.md           # Este archivo
+```
+
+## 🧪 Pruebas
+
+### Ejemplo con cURL
+
+```bash
+curl -X POST "http://127.0.0.1:8000/productionplan" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "load": 480,
+       "fuels": {
+         "gas(euro/MWh)": 13.4,
+         "kerosine(euro/MWh)": 50.8,
+         "co2(euro/ton)": 20,
+         "wind(%)": 60
+       },
+       "powerplants": [
+         {
+           "name": "gasfiredbig1",
+           "type": "gasfired",
+           "efficiency": 0.53,
+           "pmin": 100,
+           "pmax": 460
+         },
+         {
+           "name": "windpark1",
+           "type": "windturbine",
+           "efficiency": 1,
+           "pmin": 0,
+           "pmax": 150
+         }
+       ]
+     }'
+```
+
+### Documentación Interactiva
+
+Visita `http://127.0.0.1:8000/docs` para acceder a la documentación automática de Swagger UI.
+
+## 🔍 Validaciones
+
+- **Carga**: Debe ser un número positivo
+- **Combustibles**: Precios válidos para gas, queroseno, CO₂ y viento
+- **Centrales**: Eficiencia > 0, pmin ≥ 0, pmax ≥ pmin
+- **Tipos**: Solo acepta "gasfired", "turbojet", "windturbine"
+
+## ⚠️ Limitaciones Actuales
+
+- No incluye coste de CO₂ para centrales de gas (se puede añadir fácilmente)
+- Algoritmo greedy simple (no optimización lineal completa)
+- Sin gestión de rampas de potencia
+- Sin consideración de reservas operativas
+
+## 🚀 Mejoras Futuras
+
+- [ ] Incluir costes de CO₂ en el cálculo
+- [ ] Implementar optimización lineal (PuLP/CVXPY)
+- [ ] Gestión de reservas primaria y secundaria
+- [ ] Consideración de rampas de potencia
+- [ ] Tests unitarios y de integración
+- [ ] Logging y métricas de rendimiento
