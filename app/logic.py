@@ -12,7 +12,8 @@ def build_merit_order(powerplants: List[PowerPlant], fuels: FuelPrices) -> List[
         if plant.type == "windturbine":
             plant.marginal_cost = 0.0
         elif plant.type == "gasfired":
-            plant.marginal_cost = fuels.gas_euro_per_mwh / plant.efficiency
+            coste_co2 = 0.3 * fuels.co2_euro_per_ton
+            plant.marginal_cost = (fuels.gas_euro_per_mwh / plant.efficiency) + coste_co2
         elif plant.type == "turbojet":
             plant.marginal_cost = fuels.kerosene_euro_per_mwh / plant.efficiency
         else:
